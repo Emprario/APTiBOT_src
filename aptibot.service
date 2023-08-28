@@ -1,0 +1,18 @@
+[Unit]
+Description=APTiBOT systemd service
+
+[Service]
+Type=forking
+ExecStart=daemonize -o /home/pierre/APTiBOT/service.log /home/pierre/APTiBOT/entrypoint.sh
+TimeoutSec=1200
+Restart=on-failure
+
+User=pierre
+Group=pierre
+
+[Install]
+WantedBy=multi-user.target
+
+[Unit]
+Wants=network-online.target
+After=network-online.target
