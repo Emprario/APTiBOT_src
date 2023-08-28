@@ -23,52 +23,98 @@ async def SETUP_VARS ():
     global MSG_CLASSE
     global MSG_ROLES
 
-    global REAC_CGU
-    global REAC_CLASSE
-    global REAC_ROLES
-
-    global REACT_DICT
+    global CGU_ROOT
+    global INTERN 
+    global EXTERN
+    global BLABLA
+    global ETUDES
+    global JEUX_V
 
     CHANNEL_ROLES = bot.get_channel(1143999446070337559)
     SERVER = bot.get_guild(1143931284595417140)
     
     MSG_CGU = await CHANNEL_ROLES.fetch_message(1143999517922963466)
-    REAC_CGU = MSG_CGU.reactions()
     
     MSG_CLASSE = await CHANNEL_ROLES.fetch_message(1144010479145070673)
-    REAC_CLASSE = MSG_CLASSE.reactions()
     
     MSG_ROLES = await CHANNEL_ROLES.fetch_message(1144014029875060897)
-    REAC_ROLES = MSG_ROLES.reactions()
 
+    CGU_ROOT = SERVER.get_role(1143994418559455312)
     INTERN = SERVER.get_role(1143936334986223789)
     EXTERN = SERVER.get_role(1143937761666158724)
-    REACT_DICT: dict[str,discord.Role] = {
-        "✅":SERVER.get_role(1143994418559455312),
+    BLABLA = SERVER.get_role(1144017617938554970)
+    ETUDES = SERVER.get_role(1144017476074602627)
+    JEUX_V = SERVER.get_role(1144012929541357578)
+
+    print("All VARS setup !")
+
+def get_REACT_DICT() -> dict[str,discord.Role]:
+    return {
+        "✅":CGU_ROOT,
         "<:L1:1144016256001904660>":INTERN,
         "<:L1_plus:1144014333446193275>":INTERN,
         "<:L2:1144016303762460672>":EXTERN,
-        "#️⃣":SERVER.get_role(1144017617938554970),
-        "📕":SERVER.get_role(1144017476074602627),
-        "🎮":SERVER.get_role(1144012929541357578)
+        "#️⃣":BLABLA,
+        "📕":ETUDES,
+        "🎮":JEUX_V
     }
 
-class User_pystatus (Common):
-    self.user_id = user_id
-    self.member = discord.utils.get(self.SERVER.members, id=user_id)
-    self.reactions = [user async for user in self.reactions.users()] #if user == user_id]
-    print(self.reactions)
+def message_id_to_scope(message_id:int):
+    match message_id:
+        case 1143999517922963466:
+            return MSG_CGU
+        case 1144010479145070673:
+            return MSG_CLASSE
+        case 1144014029875060897:
+            return MSG_ROLES
+        case _:
+            raise KeyError
 
-def update_react(user:User_pystatus):
-    pass
+def check_stages(roles: list[discord.Role]) -> int:
+    ## Stage 1
+    stage = 0
+    if CGU_ROOT in roles:
+        stage = 1
+    else:
+        return stage
+    if INTERN in roles or EXTERN in roles:
+        stage = 2
+    else:
+        return stage
+    
+    # ...
 
-def add_role(user:User_pystatus, pretend: discord.Reaction):
-    pass
+    return stage
 
-def remove_role(user:User_pystatus):
-    pass
+def which_stage(role: discord.Role) -> int:
+    STAGES = {
+        CGU_ROOT: 0,
+        INTERN: 1,
+        EXTERN: 1,
+        BLABLA: 2,
+        JEUX_V: 2,
+        ETUDES: 2
+    }
+    return STAGES[role]
+    
 
-def update_status():
+async def get_user_reactions(member:discord.Member, scope: discord.Message): # scope added for perf
+    reactions = []
+    for reac in scope.reactions: #[*REAC_CGU,*REAC_CLASSE,*REAC_ROLES]:
+        reactions += [reac async for rmember in reac.users() if rmember == member ]
+    return reactions
+
+async def add_role(member:discord.Member, pretend: discord.Reaction, scope:discord.Message):
+    REACT_DICT = get_REACT_DICT()
+    if which_stage(REACT_DICT[str(pretend)]) <= check_stages(member.roles):
+        await member.add_roles(REACT_DICT[str(pretend)])
+    else:
+        await pretend.remove(member)
+
+    #for reac in await get_user_reactions(member, scope):
+    #    await member.add_roles(REACT_DICT[str(reac)])
+
+def remove_role(user_id:int):
     pass
 
 ### events and commands ###
@@ -80,7 +126,7 @@ async def on_ready():
     print("Username: %s"%bot.user.name)
     print("ID: %s"%bot.user.id)
     print("----------------------")
-    SETUP_VARS()
+    await SETUP_VARS()
 
 @bot.event
 async def on_message(ctx):
@@ -93,13 +139,17 @@ async def ping(ctx):
 
 @bot.event
 async def on_raw_reaction_add(payload):
-    print("Receive react")
-    pass
+    print("\nReceive react")
+    scope = message_id_to_scope(payload.message_id)
+    if not (reaction := discord.utils.get(scope.reactions, emoji=payload.emoji)):
+        reaction = discord.utils.get(scope.reactions, emoji=str(payload.emoji))
+    print(f"By: {member}\nReact : {reaction}")
+    await add_role(payload.member, reaction, scope)
 
 @bot.event
 async def on_raw_reaction_remove(payload):
-    print("Discard react")
-    pass
+    print("\nDiscard react")
+    scope = message_id_to_scope(payload.message_id)
 
 
 ### EXEC ###
