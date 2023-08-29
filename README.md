@@ -19,4 +19,4 @@ Source code for Aptibot a discord bot
 * python3.11.x - discord.py : https://discordpy.readthedocs.io/en/stable/api.html
 
 ## Description technique d'attribution des rôles
-Quand un utilisateur réagit à un émojie, le bot va obtenir un status de ces rôles sous forme d'un objet `User_pystatus` composé de l'état des trois stages de roles (cf [main.py](main.py)). En fonction de ce dernier la fonction `update_status` va update ses rôles (rajouter rôle, enlever rôle, enlever (update) réaction) avec des fonctions de micro-actions: 
+Quand un utilisateur réagit à un émoji, si une opération interne n'est pas déjà en cours, il va réagir à la demande de rôle. Le bot va update votre status en considérant la hiérarchie des rôles ( `CGU_ROOT < CLASSE < ROLES (extra)` )

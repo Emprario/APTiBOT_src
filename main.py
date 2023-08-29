@@ -30,6 +30,8 @@ async def SETUP_VARS ():
     global ETUDES
     global JEUX_V
 
+    global PENDING
+
     CHANNEL_ROLES = bot.get_channel(1143999446070337559)
     SERVER = bot.get_guild(1143931284595417140)
     
@@ -46,6 +48,8 @@ async def SETUP_VARS ():
     ETUDES = SERVER.get_role(1144017476074602627)
     JEUX_V = SERVER.get_role(1144012929541357578)
 
+    PENDING = False 
+
     print("All VARS setup !")
 
 def get_REACT_DICT() -> dict[str,discord.Role]:
@@ -59,7 +63,7 @@ def get_REACT_DICT() -> dict[str,discord.Role]:
         "🎮":JEUX_V
     }
 
-def message_id_to_scope(message_id:int):
+def message_id_to_scope(message_id:int) -> discord.Message:
     match message_id:
         case 1143999517922963466:
             return MSG_CGU
@@ -69,6 +73,9 @@ def message_id_to_scope(message_id:int):
             return MSG_ROLES
         case _:
             raise KeyError
+
+def get_all_scopes() -> list[discord.Message]:
+    return [MSG_CGU,MSG_CLASSE,MSG_ROLES]
 
 def check_stages(roles: list[discord.Role]) -> int:
     ## Stage 1
@@ -114,8 +121,29 @@ async def add_role(member:discord.Member, pretend: discord.Reaction, scope:disco
     #for reac in await get_user_reactions(member, scope):
     #    await member.add_roles(REACT_DICT[str(reac)])
 
-def remove_role(user_id:int):
-    pass
+async def remove_role(member:discord.Member, emoji):
+    # First abtrary remove the role
+    REACT_DICT = get_REACT_DICT()
+    await member.remove_roles(REACT_DICT[str(emoji)])
+
+    update = True
+    reactions = []
+    for scope in get_all_scopes():
+        for reac in scope.reactions:
+            reactions += [reac async for rmember in reac.users() if rmember == member ]
+    print(f"User reactions : {reactions}")
+    
+    while reactions != [] and update:
+        update = False
+        for reaction  in reactions:
+            role = REACT_DICT[str(reaction)]
+            if which_stage(role) > check_stages(member.roles):
+                await reaction.remove(member)
+                update = True
+                reactions.remove(reaction)
+    print("Removed role(s) !")
+
+
 
 ### events and commands ###
 
@@ -139,17 +167,36 @@ async def ping(ctx):
 
 @bot.event
 async def on_raw_reaction_add(payload):
+    global PENDING
+    if PENDING:
+        return
+    PENDING = True
+
     print("\nReceive react")
     scope = message_id_to_scope(payload.message_id)
     if not (reaction := discord.utils.get(scope.reactions, emoji=payload.emoji)):
         reaction = discord.utils.get(scope.reactions, emoji=str(payload.emoji))
-    print(f"By: {member}\nReact : {reaction}")
+    print(f"By: {payload.member}\nReact : {reaction}")
+    
     await add_role(payload.member, reaction, scope)
+
+    PENDING=False
 
 @bot.event
 async def on_raw_reaction_remove(payload):
+    global PENDING
+    if PENDING:
+        return 
+    PENDING = True
+
     print("\nDiscard react")
-    scope = message_id_to_scope(payload.message_id)
+
+    # HOTFIX for ctx.member
+    payload.member = discord.utils.get(SERVER.members, id=payload.user_id)
+
+    await remove_role(payload.member, str(payload.emoji))
+
+    PENDING=False
 
 
 ### EXEC ###
