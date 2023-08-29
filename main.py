@@ -195,9 +195,14 @@ async def on_raw_reaction_remove(payload):
 
     PENDING = False
 
-#@bot.event
-#async def on_member_join(member):
-#    await CHANNEL_CHKIN.send("Bonjour {member.}")
+@bot.event
+async def on_member_join(member):
+    await CHANNEL_CHKIN.send(
+        f"Bonjour <@{member.id}> et bienvenue ! \n" \
+        "Tu peut dès maintenant lire les règles <#1143999446070337559> \n" \
+        "Acceptes les règles, puis choisit une classe, et enfin tes rôles. \n" \
+        "Rejoins nous !"
+        )
     
 
 ### EXEC ###
