@@ -48,7 +48,8 @@ async def SETUP_VARS ():
     ETUDES = SERVER.get_role(1144017476074602627)
     JEUX_V = SERVER.get_role(1144012929541357578)
 
-    PENDING = False 
+    PENDING = False
+    REM_PENDING: list[str] = [] 
 
     print("All VARS setup !")
 
@@ -131,6 +132,7 @@ async def remove_role(member:discord.Member, emoji):
     for scope in get_all_scopes():
         for reac in scope.reactions:
             reactions += [reac async for rmember in reac.users() if rmember == member ]
+    PENDING=False
     print(f"User reactions : {reactions}")
     
     while reactions != [] and update:
@@ -139,6 +141,7 @@ async def remove_role(member:discord.Member, emoji):
             role = REACT_DICT[str(reaction)]
             if which_stage(role) > check_stages(member.roles):
                 await reaction.remove(member)
+                await member.remove_roles(role)
                 update = True
                 reactions.remove(reaction)
     print("Removed role(s) !")
@@ -195,8 +198,6 @@ async def on_raw_reaction_remove(payload):
     payload.member = discord.utils.get(SERVER.members, id=payload.user_id)
 
     await remove_role(payload.member, str(payload.emoji))
-
-    PENDING=False
 
 
 ### EXEC ###
