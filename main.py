@@ -17,6 +17,7 @@ bot = Bot('µ ',intents=intents)
 
 async def SETUP_VARS ():
     global CHANNEL_ROLES
+    global CHANNEL_CHKIN
     global SERVER
     
     global MSG_CGU
@@ -33,6 +34,7 @@ async def SETUP_VARS ():
     global PENDING
 
     CHANNEL_ROLES = bot.get_channel(1143999446070337559)
+    CHANNEL_CHKIN = bot.get_channel(1145844239528366161)
     SERVER = bot.get_guild(1143931284595417140)
     
     MSG_CGU = await CHANNEL_ROLES.fetch_message(1143999517922963466)
@@ -131,7 +133,7 @@ async def remove_role(member:discord.Member, emoji):
     reactions = []
     for scope in get_all_scopes():
         for reac in scope.reactions:
-            reactions += [reac async for rmember in reac.users() if rmember == member ]
+            reactions += [reac async for rmember in reac.users() if rmember == member]
     print(f"User reactions : {reactions}")
     
     while reactions != [] and update:
@@ -169,11 +171,6 @@ async def ping(ctx):
 
 @bot.event
 async def on_raw_reaction_add(payload):
-    global PENDING
-    if PENDING:
-        return
-    PENDING = True
-
     print("\nReceive react")
     scope = message_id_to_scope(payload.message_id)
     if not (reaction := discord.utils.get(scope.reactions, emoji=payload.emoji)):
@@ -181,8 +178,6 @@ async def on_raw_reaction_add(payload):
     print(f"By: {payload.member}\nReact : {reaction}")
     
     await add_role(payload.member, reaction, scope)
-
-    PENDING = False
 
 @bot.event
 async def on_raw_reaction_remove(payload):
@@ -200,6 +195,10 @@ async def on_raw_reaction_remove(payload):
 
     PENDING = False
 
+#@bot.event
+#async def on_member_join(member):
+#    await CHANNEL_CHKIN.send("Bonjour {member.}")
+    
 
 ### EXEC ###
 bot.run(TOKEN)
