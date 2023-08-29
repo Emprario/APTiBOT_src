@@ -123,6 +123,8 @@ async def add_role(member:discord.Member, pretend: discord.Reaction, scope:disco
     #    await member.add_roles(REACT_DICT[str(reac)])
 
 async def remove_role(member:discord.Member, emoji):
+    global PENDING
+    global REM_PENDING
     # First abtrary remove the role
     REACT_DICT = get_REACT_DICT()
     await member.remove_roles(REACT_DICT[str(emoji)])
@@ -140,6 +142,7 @@ async def remove_role(member:discord.Member, emoji):
         for reaction  in reactions:
             role = REACT_DICT[str(reaction)]
             if which_stage(role) > check_stages(member.roles):
+                REM_PENDING.append(str(reaction))
                 await reaction.remove(member)
                 await member.remove_roles(role)
                 update = True
@@ -188,7 +191,10 @@ async def on_raw_reaction_add(payload):
 @bot.event
 async def on_raw_reaction_remove(payload):
     global PENDING
-    if PENDING:
+    if REM_PENDING != [] and str(payload.emoji) in REM_PENDING:
+        REM_PENDING.remove(str(payload.emoji))
+        return
+    elif PENDING:
         return 
     PENDING = True
 
