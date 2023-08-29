@@ -132,7 +132,6 @@ async def remove_role(member:discord.Member, emoji):
     for scope in get_all_scopes():
         for reac in scope.reactions:
             reactions += [reac async for rmember in reac.users() if rmember == member ]
-    PENDING=False
     print(f"User reactions : {reactions}")
     
     while reactions != [] and update:
@@ -183,7 +182,7 @@ async def on_raw_reaction_add(payload):
     
     await add_role(payload.member, reaction, scope)
 
-    PENDING=False
+    PENDING = False
 
 @bot.event
 async def on_raw_reaction_remove(payload):
@@ -198,6 +197,8 @@ async def on_raw_reaction_remove(payload):
     payload.member = discord.utils.get(SERVER.members, id=payload.user_id)
 
     await remove_role(payload.member, str(payload.emoji))
+
+    PENDING = False
 
 
 ### EXEC ###
