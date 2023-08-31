@@ -2,7 +2,7 @@
 
 ### First init ###
 
-from typing import Any, Coroutine
+import csv
 import discord
 from discord.ext.commands import Bot
 
@@ -12,6 +12,8 @@ with open("token.raw") as ftoken:
 
 intents = discord.Intents.all()
 bot = Bot('µ ',intents=intents)
+with open("reactions.csv",'w') as table:
+    table.write("")
 
 ### Stages and functions ###
 
@@ -55,12 +57,33 @@ async def SETUP_VARS ():
 
     print("All VARS setup !")
 
+def get_all_scopes() -> list[discord.Message]:
+    return [MSG_CGU,MSG_CLASSE,MSG_ROLES]
+
+async def fetch_reaction_db():
+    reactions = []
+    for scope in get_all_scopes():
+        for reac in scope.reactions:
+            reactions += [(str(reac),rmember.id) async for rmember in reac.users()]
+    
+    with open("reactions.csv",'a') as table:
+        writer = csv.writer(table)
+        writer.writerow(["reaction","member_id"])
+        for c in reactions:
+            writer.writerow(c)
+    
+    print("All reactions fetched !")
+    
+
 def get_REACT_DICT() -> dict[str,discord.Role]:
     return {
         "✅":CGU_ROOT,
         "<:L1:1144016256001904660>":INTERN,
         "<:L1_plus:1144014333446193275>":INTERN,
         "<:L2:1144016303762460672>":EXTERN,
+        "<:L3:1144653440174276719>":EXTERN,
+        "<:M1:1144653357001224273>":EXTERN,
+        "<:M2:1144653378065027113>":EXTERN,
         "#️⃣":BLABLA,
         "📕":ETUDES,
         "🎮":JEUX_V
@@ -76,9 +99,6 @@ def message_id_to_scope(message_id:int) -> discord.Message:
             return MSG_ROLES
         case _:
             raise KeyError
-
-def get_all_scopes() -> list[discord.Message]:
-    return [MSG_CGU,MSG_CLASSE,MSG_ROLES]
 
 def check_stages(roles: list[discord.Role]) -> int:
     ## Stage 1
@@ -106,7 +126,6 @@ def which_stage(role: discord.Role) -> int:
         ETUDES: 2
     }
     return STAGES[role]
-    
 
 async def get_user_reactions(member:discord.Member, scope: discord.Message): # scope added for perf
     reactions = []
@@ -124,16 +143,37 @@ async def add_role(member:discord.Member, pretend: discord.Reaction, scope:disco
     #for reac in await get_user_reactions(member, scope):
     #    await member.add_roles(REACT_DICT[str(reac)])
 
-async def remove_role(member:discord.Member, emoji):
+async def remove_role(member:discord.Member, pemoji: discord.PartialEmoji):
     # First abtrary remove the role
     REACT_DICT = get_REACT_DICT()
-    await member.remove_roles(REACT_DICT[str(emoji)])
+    await member.remove_roles(REACT_DICT[str(pemoji)])
+    with open("reactions.csv",'a') as table:
+        table.write(f"del {pemoji},{member.id}\n")
 
     update = True
     reactions = []
+    true_reac = []
     for scope in get_all_scopes():
         for reac in scope.reactions:
-            reactions += [reac async for rmember in reac.users() if rmember == member]
+            true_reac += [reac]
+    with open("reactions.csv",'r') as table:
+        for line in table:
+            if "reaction,member_id" in line:
+                continue
+            if "del " in line:
+                reaction,member_id = line[4:].split(',')
+                for reac in true_reac:
+                    if str(reac) == reaction:
+                        reactions.remove(reac)
+
+            reaction,member_id = line.split(',')
+            if int(member_id) == member.id:
+                for reac in true_reac:
+                    if str(reac) == reaction:
+                        reactions += [reac]
+    #for scope in get_all_scopes():
+    #    for reac in scope.reactions:
+    #        reactions += [reac async for rmember in reac.users() if rmember == member]
     print(f"User reactions : {reactions}")
     
     while reactions != [] and update:
@@ -145,6 +185,8 @@ async def remove_role(member:discord.Member, emoji):
                 await member.remove_roles(role)
                 update = True
                 reactions.remove(reaction)
+                with open("reactions.csv",'a') as table:
+                    table.write(f"del {reaction},{member.id}\n")
     print("Removed role(s) !")
 
 
@@ -159,6 +201,7 @@ async def on_ready():
     print("ID: %s"%bot.user.id)
     print("----------------------")
     await SETUP_VARS()
+    await fetch_reaction_db()
 
 @bot.event
 async def on_message(ctx):
@@ -179,6 +222,9 @@ async def on_raw_reaction_add(payload):
     
     await add_role(payload.member, reaction, scope)
 
+    with open("reactions.csv",'a') as table:
+        table.write(f"{reaction},{payload.member.id}\n")
+
 @bot.event
 async def on_raw_reaction_remove(payload):
     global PENDING
@@ -191,7 +237,7 @@ async def on_raw_reaction_remove(payload):
     # HOTFIX for ctx.member
     payload.member = discord.utils.get(SERVER.members, id=payload.user_id)
 
-    await remove_role(payload.member, str(payload.emoji))
+    await remove_role(payload.member, payload.emoji)
 
     PENDING = False
 
