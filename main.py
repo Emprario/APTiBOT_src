@@ -11,7 +11,7 @@ with open("token.raw") as ftoken:
 
 intents = discord.Intents.all()
 bot = Bot('µ ', intents=intents)
-with open("reactions.csv", 'w') as table:
+with open("reactions.csv", 'w', encoding='utf-8') as table:
     table.write("")
 
 
@@ -71,10 +71,10 @@ async def fetch_reaction_db():
             reactions += [(str(reac), rmember.id) async for rmember in reac.users()]
 
     with open("reactions.csv", 'a', encoding="utf-8") as table:
-        table.write(",".join(["reaction", "member_id"]))
+        table.write(",".join(["reaction", "member_id"])+'\n')
         for c in reactions:
             c = [str(el) for el in c]
-            table.write(",".join(c))
+            table.write(",".join(c)+'\n')
 
     print("All reactions fetched !")
 
@@ -159,7 +159,7 @@ async def remove_role(member: discord.Member, pemoji: discord.PartialEmoji):
     # First abtrary remove the role
     REACT_DICT = get_REACT_DICT()
     await member.remove_roles(REACT_DICT[str(pemoji)])
-    with open("reactions.csv", 'a') as table:
+    with open("reactions.csv", 'a', encoding='utf-8') as table:
         table.write(f"del {pemoji},{member.id}\n")
 
     update = True
@@ -168,7 +168,7 @@ async def remove_role(member: discord.Member, pemoji: discord.PartialEmoji):
     for scope in get_all_scopes():
         for reac in scope.reactions:
             true_reac += [reac]
-    with open("reactions.csv", 'r') as table:
+    with open("reactions.csv", 'r', encoding='utf-8') as table:
         for line in table:
             if "reaction,member_id" in line:
                 continue
@@ -197,7 +197,7 @@ async def remove_role(member: discord.Member, pemoji: discord.PartialEmoji):
                 await member.remove_roles(role)
                 update = True
                 reactions.remove(reaction)
-                with open("reactions.csv", 'a') as table:
+                with open("reactions.csv", 'a', encoding='utf-8') as table:
                     table.write(f"del {reaction},{member.id}\n")
     print("Removed role(s) !")
 
@@ -236,7 +236,7 @@ async def on_raw_reaction_add(payload):
 
     await add_role(payload.member, reaction, scope)
 
-    with open("reactions.csv", 'a') as table:
+    with open("reactions.csv", 'a', encoding='utf-8') as table:
         table.write(f"{reaction},{payload.member.id}\n")
 
 
