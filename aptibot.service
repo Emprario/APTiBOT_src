@@ -2,13 +2,11 @@
 Description=APTiBOT systemd service
 
 [Service]
-Type=forking
-ExecStart=daemonize -o /home/pierre/APTiBOT/service.log /home/pierre/APTiBOT/entrypoint.sh
-TimeoutSec=1200
-Restart=on-failure
+Type=simple
+ExecStart=/opt/APTiBOT/main.py
 
-User=pierre
-Group=pierre
+User=dbot
+Group=dbot
 
 [Install]
 WantedBy=multi-user.target

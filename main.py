@@ -70,11 +70,11 @@ async def fetch_reaction_db():
         for reac in scope.reactions:
             reactions += [(str(reac), rmember.id) async for rmember in reac.users()]
 
-    with open("reactions.csv", 'a') as table:
-        writer = csv.writer(table)
-        writer.writerow(["reaction", "member_id"])
+    with open("reactions.csv", 'a', encoding="utf-8") as table:
+        table.write(",".join(["reaction", "member_id"]))
         for c in reactions:
-            writer.writerow(c)
+            c = [str(el) for el in c]
+            table.write(",".join(c))
 
     print("All reactions fetched !")
 
